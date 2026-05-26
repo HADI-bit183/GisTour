@@ -25,8 +25,6 @@ class DesaWisataApp extends StatelessWidget {
   }
 }
 
-// ─── DATA MODEL ───────────────────────────────────────────────────────────────
-
 class UlasanItem {
   final String nama;
   final double rating;
@@ -57,6 +55,7 @@ class WisataItem {
   final double lat;
   final double lng;
   final List<UlasanItem> ulasan;
+  final String? imagePath;
 
   const WisataItem({
     required this.id,
@@ -74,19 +73,21 @@ class WisataItem {
     required this.lat,
     required this.lng,
     required this.ulasan,
+    this.imagePath,
   });
 }
 
 const List<WisataItem> dataWisata = [
   WisataItem(
     id: '1',
-    nama: 'Water Dam Pekon Landbaw',
+    nama: 'Pemandian Way Bekhak Sukaraja Gunung Alip',
     kategori: 'Alam',
     harga: 'Rp 15.000',
     hargaAngka: 15000,
-    lokasi: 'Pekon Landbaw, Kec. Gisting, Kab. Tanggamus',
+    lokasi:
+        'Jalan Raya Banjarnegri, Desa Sukaraja, Gunung Alip, Kabupaten Tanggamus.',
     deskripsi:
-        'Bendungan dengan air yang sangat bening, jernih, dan banyak ikan, menjadikannya viral sebagai "aquarium alami". Tempat ini sangat cocok untuk bersantai menikmati keindahan alam Gisting.',
+        'Way Bekhak merupakan salah satu wisata mata air yang berlokasi di Tanggamus, di tempat ini pengunjung dapat menikmati segarnya air bersumber dari mata air alami. Jika diartikan, Way Bekhak merupakan nama yang digunakan dengan Bahasa Lampung yang artinya Way adalah Air dan Bekhak adalah Lebar.',
     emoji: '🌊',
     warna: Color(0xFF1565C0),
     fasilitas: ['Parkir Luas', 'Kuliner', 'Toilet', 'Spot Foto'],
@@ -94,6 +95,7 @@ const List<WisataItem> dataWisata = [
     jamBuka: '07.00 – 17.00 WIB',
     lat: -5.3711,
     lng: 104.6280,
+    imagePath: 'assets/images/pemandian_way_bekhak.jpg',
     ulasan: [
       UlasanItem(
         nama: 'Siti Rahma',
@@ -138,6 +140,7 @@ const List<WisataItem> dataWisata = [
     jamBuka: '06.30 – 17.30 WIB',
     lat: -5.3650,
     lng: 104.6150,
+    imagePath: 'assets/images/kebun_anggur_gisting.jpg',
     ulasan: [
       UlasanItem(
         nama: 'Budi Santoso',
@@ -176,6 +179,7 @@ const List<WisataItem> dataWisata = [
     jamBuka: '08.00 – 18.00 WIB',
     lat: -5.3580,
     lng: 104.6320,
+    imagePath: 'assets/images/desa_wisata_sidokaton.jpg',
     ulasan: [
       UlasanItem(
         nama: 'Rizky Farhan',
@@ -209,6 +213,7 @@ const List<WisataItem> dataWisata = [
     jamBuka: '24 Jam',
     lat: -5.5200,
     lng: 104.5800,
+    imagePath: 'assets/images/pantai_bidadari_putih.png',
     ulasan: [
       UlasanItem(
         nama: 'Herman',
@@ -247,6 +252,7 @@ const List<WisataItem> dataWisata = [
     jamBuka: '06.00 – 18.00 WIB',
     lat: -5.3500,
     lng: 104.6100,
+    imagePath: 'assets/images/bukit_idaman_gisting.jpg',
     ulasan: [
       UlasanItem(
         nama: 'Fauzi',
@@ -278,6 +284,7 @@ const List<WisataItem> dataWisata = [
     jamBuka: '08.00 – 17.00 WIB',
     lat: -5.3750,
     lng: 104.6200,
+    imagePath: 'assets/images/dam_margo_tirto.jpeg',
     ulasan: [
       UlasanItem(
         nama: 'Hana',
@@ -294,8 +301,6 @@ const List<WisataItem> dataWisata = [
     ],
   ),
 ];
-
-// ─── LOGIN PAGE ───────────────────────────────────────────────────────────────
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -479,7 +484,6 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
 
-                      // Lupa password
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
@@ -497,7 +501,6 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
 
-                      // Error message
                       if (_error != null) ...[
                         Container(
                           width: double.infinity,
@@ -532,7 +535,6 @@ class _LoginPageState extends State<LoginPage> {
 
                       const SizedBox(height: 4),
 
-                      // Tombol Login
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -705,8 +707,6 @@ class _LoginPageState extends State<LoginPage> {
     ],
   );
 }
-
-// ─── REGISTER PAGE ────────────────────────────────────────────────────────────
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -883,7 +883,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 const SizedBox(height: 28),
 
-                // Card register
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -900,7 +899,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Nama
                       _inputLabel('Nama Lengkap'),
                       const SizedBox(height: 6),
                       _inputField(
@@ -910,7 +908,6 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Email
                       _inputLabel('Email'),
                       const SizedBox(height: 6),
                       _inputField(
@@ -921,7 +918,6 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Password
                       _inputLabel('Password'),
                       const SizedBox(height: 6),
                       _inputField(
@@ -943,7 +939,6 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Konfirmasi password
                       _inputLabel('Konfirmasi Password'),
                       const SizedBox(height: 6),
                       _inputField(
@@ -965,7 +960,6 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                       ),
 
-                      // Error message
                       if (_error != null) ...[
                         const SizedBox(height: 12),
                         Container(
@@ -1000,7 +994,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
                       const SizedBox(height: 20),
 
-                      // Tombol Daftar
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -1114,8 +1107,6 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 }
-
-// ─── SPLASH SCREEN ────────────────────────────────────────────────────────────
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -1235,8 +1226,6 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-// ─── MAIN SHELL (Bottom Nav) ──────────────────────────────────────────────────
-
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
   @override
@@ -1289,8 +1278,6 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
-// ─── BERANDA PAGE ─────────────────────────────────────────────────────────────
-
 class BerandaPage extends StatefulWidget {
   const BerandaPage({super.key});
   @override
@@ -1319,7 +1306,6 @@ class _BerandaPageState extends State<BerandaPage> {
       backgroundColor: const Color(0xFFF8F9F4),
       body: CustomScrollView(
         slivers: [
-          // Header
           SliverToBoxAdapter(
             child: Container(
               decoration: const BoxDecoration(
@@ -1406,7 +1392,6 @@ class _BerandaPageState extends State<BerandaPage> {
             ),
           ),
 
-          // Hasil Pencarian (jika ada)
           if (_searchQuery.isNotEmpty)
             SliverToBoxAdapter(
               child: Padding(
@@ -1444,7 +1429,6 @@ class _BerandaPageState extends State<BerandaPage> {
               ),
             ),
 
-          // Stats
           if (_searchQuery.isEmpty) ...[
             SliverToBoxAdapter(
               child: Padding(
@@ -1461,7 +1445,6 @@ class _BerandaPageState extends State<BerandaPage> {
               ),
             ),
 
-            // Kategori Cepat
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -1512,7 +1495,6 @@ class _BerandaPageState extends State<BerandaPage> {
               ),
             ),
 
-            // Rekomendasi
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
@@ -1623,8 +1605,6 @@ class _BerandaPageState extends State<BerandaPage> {
   }
 }
 
-// ─── DAFTAR WISATA PAGE ───────────────────────────────────────────────────────
-
 class DaftarWisataPage extends StatefulWidget {
   const DaftarWisataPage({super.key});
   @override
@@ -1715,7 +1695,6 @@ class _DaftarWisataPageState extends State<DaftarWisataPage> {
               ),
             ),
           ),
-          // Filter chips
           SizedBox(
             height: 38,
             child: ListView.separated(
@@ -1766,7 +1745,6 @@ class _DaftarWisataPageState extends State<DaftarWisataPage> {
               ],
             ),
           ),
-          // List
           Expanded(
             child: _filtered.isEmpty
                 ? const Center(
@@ -1796,8 +1774,6 @@ class _DaftarWisataPageState extends State<DaftarWisataPage> {
     );
   }
 }
-
-// ─── FILTER SHEET ─────────────────────────────────────────────────────────────
 
 class _FilterSheet extends StatelessWidget {
   final String selected;
@@ -1881,8 +1857,6 @@ class _FilterSheet extends StatelessWidget {
     );
   }
 }
-
-// ─── PETA PAGE ────────────────────────────────────────────────────────────────
 
 class PetaPage extends StatefulWidget {
   const PetaPage({super.key});
@@ -2415,19 +2389,40 @@ class _WisataCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 90,
-              height: 90,
-              decoration: BoxDecoration(
-                color: item.warna.withOpacity(0.15),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  bottomLeft: Radius.circular(20),
-                ),
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                bottomLeft: Radius.circular(20),
               ),
-              child: Center(
-                child: Text(item.emoji, style: const TextStyle(fontSize: 38)),
-              ),
+              child: item.imagePath != null
+                  ? Image.asset(
+                      item.imagePath!,
+                      width: 90,
+                      height: 90,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        width: 90,
+                        height: 90,
+                        color: item.warna.withOpacity(0.15),
+                        child: Center(
+                          child: Text(
+                            item.emoji,
+                            style: const TextStyle(fontSize: 38),
+                          ),
+                        ),
+                      ),
+                    )
+                  : Container(
+                      width: 90,
+                      height: 90,
+                      color: item.warna.withOpacity(0.15),
+                      child: Center(
+                        child: Text(
+                          item.emoji,
+                          style: const TextStyle(fontSize: 38),
+                        ),
+                      ),
+                    ),
             ),
             Expanded(
               child: Padding(
@@ -2603,24 +2598,67 @@ class _DetailPageState extends State<DetailPage> {
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [item.warna.withOpacity(0.6), item.warna],
-                  ),
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 40),
-                      Text(item.emoji, style: const TextStyle(fontSize: 80)),
-                    ],
-                  ),
-                ),
-              ),
+              background: item.imagePath != null
+                  ? Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.asset(
+                          item.imagePath!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  item.warna.withOpacity(0.6),
+                                  item.warna,
+                                ],
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                item.emoji,
+                                style: const TextStyle(fontSize: 80),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                item.warna.withOpacity(0.6),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [item.warna.withOpacity(0.6), item.warna],
+                        ),
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 40),
+                            Text(
+                              item.emoji,
+                              style: const TextStyle(fontSize: 80),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
             ),
           ),
 
