@@ -19,7 +19,7 @@ const List<WisataItem> dataWisata = [
     jamBuka: '07.00 – 17.00 WIB',
     lat: -5.3711,
     lng: 104.6280,
-    imagePath: 'assets/images/pemandian_way_bekhak.jpg',
+    imagePath: 'asset/pemandian_way_bekhak.jpg',
     ulasan: [
       UlasanItem(
         nama: 'Siti Rahma',
@@ -64,7 +64,7 @@ const List<WisataItem> dataWisata = [
     jamBuka: '06.30 – 17.30 WIB',
     lat: -5.3650,
     lng: 104.6150,
-    imagePath: 'assets/images/kebun_anggur_gisting.jpg',
+    imagePath: 'asset/kebun_anggur_gisting.jpg',
     ulasan: [
       UlasanItem(
         nama: 'Budi Santoso',
@@ -103,7 +103,7 @@ const List<WisataItem> dataWisata = [
     jamBuka: '08.00 – 18.00 WIB',
     lat: -5.3580,
     lng: 104.6320,
-    imagePath: 'assets/images/desa_wisata_sidokaton.jpg',
+    imagePath: 'asset/desa_wisata_sidokaton.jpg',
     ulasan: [
       UlasanItem(
         nama: 'Rizky Farhan',
@@ -137,7 +137,7 @@ const List<WisataItem> dataWisata = [
     jamBuka: '24 Jam',
     lat: -5.5200,
     lng: 104.5800,
-    imagePath: 'assets/images/pantai_bidadari_putih.png',
+    imagePath: 'asset/pantai_bidadari_putih.png',
     ulasan: [
       UlasanItem(
         nama: 'Herman',
@@ -176,7 +176,7 @@ const List<WisataItem> dataWisata = [
     jamBuka: '06.00 – 18.00 WIB',
     lat: -5.3500,
     lng: 104.6100,
-    imagePath: 'assets/images/bukit_idaman_gisting.jpg',
+    imagePath: 'asset/bukit_idaman_gisting.jpeg',
     ulasan: [
       UlasanItem(
         nama: 'Fauzi',
@@ -208,7 +208,7 @@ const List<WisataItem> dataWisata = [
     jamBuka: '08.00 – 17.00 WIB',
     lat: -5.3750,
     lng: 104.6200,
-    imagePath: 'assets/images/dam_margo_tirto.jpeg',
+    imagePath: 'asset/dam_margo_tirto.jpeg',
     ulasan: [
       UlasanItem(
         nama: 'Hana',
