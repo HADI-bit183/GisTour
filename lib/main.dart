@@ -20,6 +20,7 @@ class DesaWisataApp extends StatelessWidget {
         ),
         useMaterial3: true,
         fontFamily: 'Georgia',
+        
       ),
       home: const LoginPage(),
     );
