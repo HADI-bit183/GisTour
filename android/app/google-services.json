@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1091867164690",
+    "project_id": "gistour-88bf0",
+    "storage_bucket": "gistour-88bf0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1091867164690:android:247c77409dc0e4d7f958cb",
+        "android_client_info": {
+          "package_name": "com.gistour.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDPxDEdlcFPUu4nPl-JwF0dvBChTLIsT7Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
