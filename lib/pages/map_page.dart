@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import '../services/location_service.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -11,21 +12,19 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> {
-  // ── Warna tema ──────────────────────────────────────────────
   static const _navy = Color(0xFF0B1F3A);
+  static const _navyDark = Color(0xFF0D2B55);
   static const _blue = Color(0xFF1565C0);
   static const _bodyBg = Color(0xFFF0F4FC);
 
-  // ── Map ─────────────────────────────────────────────────────
-  final Completer<GoogleMapController> _mapController = Completer();
   static const LatLng _gistingCenter = LatLng(-5.3830, 104.6240);
 
-  final Set<Marker> _markers = {};
+  final MapController _mapController = MapController();
   LatLng? _userLocation;
   bool _loadingLocation = false;
   String? _selectedDestName;
+  String? _selectedDestKategori;
 
-  // ── Destinasi wisata Gisting (koordinat asli) ────────────────
   static const List<Map<String, dynamic>> _destinations = [
     {
       'id': 'dst_1',
@@ -33,7 +32,6 @@ class _MapPageState extends State<MapPage> {
       'kategori': 'Alam',
       'lat': -5.3672,
       'lng': 104.6185,
-      'icon': '🌊',
     },
     {
       'id': 'dst_2',
@@ -41,7 +39,6 @@ class _MapPageState extends State<MapPage> {
       'kategori': 'Alam',
       'lat': -5.3910,
       'lng': 104.6310,
-      'icon': '🌿',
     },
     {
       'id': 'dst_3',
@@ -49,7 +46,6 @@ class _MapPageState extends State<MapPage> {
       'kategori': 'Petualangan',
       'lat': -5.4200,
       'lng': 104.6500,
-      'icon': '⛰️',
     },
     {
       'id': 'dst_4',
@@ -57,7 +53,6 @@ class _MapPageState extends State<MapPage> {
       'kategori': 'Alam',
       'lat': -5.3750,
       'lng': 104.5900,
-      'icon': '🏞️',
     },
     {
       'id': 'dst_5',
@@ -65,7 +60,6 @@ class _MapPageState extends State<MapPage> {
       'kategori': 'Alam',
       'lat': -5.3550,
       'lng': 104.6050,
-      'icon': '💧',
     },
     {
       'id': 'dst_6',
@@ -73,7 +67,6 @@ class _MapPageState extends State<MapPage> {
       'kategori': 'Agrowisata',
       'lat': -5.3870,
       'lng': 104.6270,
-      'icon': '🌾',
     },
     {
       'id': 'dst_7',
@@ -81,7 +74,6 @@ class _MapPageState extends State<MapPage> {
       'kategori': 'Panorama',
       'lat': -5.3790,
       'lng': 104.6380,
-      'icon': '🌄',
     },
     {
       'id': 'dst_8',
@@ -89,91 +81,75 @@ class _MapPageState extends State<MapPage> {
       'kategori': 'Petualangan',
       'lat': -5.3820,
       'lng': 104.6420,
-      'icon': '⛺',
     },
   ];
 
-  final LocationService _locationService = LocationService();
+  Color _markerColor(String kategori) {
+    switch (kategori) {
+      case 'Petualangan':
+        return const Color(0xFFFF9800);
+      case 'Agrowisata':
+        return const Color(0xFF4CAF50);
+      case 'Panorama':
+        return const Color(0xFF9C27B0);
+      default:
+        return const Color(0xFF2196F3);
+    }
+  }
+
+  IconData _markerIcon(String kategori) {
+    switch (kategori) {
+      case 'Petualangan':
+        return Icons.terrain_rounded;
+      case 'Agrowisata':
+        return Icons.agriculture_rounded;
+      case 'Panorama':
+        return Icons.landscape_rounded;
+      default:
+        return Icons.forest_rounded;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _buildMarkers();
     _getUserLocation();
-  }
-
-  void _buildMarkers() {
-    for (final dest in _destinations) {
-      _markers.add(
-        Marker(
-          markerId: MarkerId(dest['id']),
-          position: LatLng(dest['lat'], dest['lng']),
-          infoWindow: InfoWindow(
-            title: dest['name'],
-            snippet: dest['kategori'],
-          ),
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            _markerHue(dest['kategori']),
-          ),
-          onTap: () {
-            setState(() => _selectedDestName = dest['name']);
-          },
-        ),
-      );
-    }
-  }
-
-  double _markerHue(String kategori) {
-    switch (kategori) {
-      case 'Petualangan':
-        return BitmapDescriptor.hueOrange;
-      case 'Agrowisata':
-        return BitmapDescriptor.hueGreen;
-      case 'Panorama':
-        return BitmapDescriptor.hueViolet;
-      default:
-        return BitmapDescriptor.hueAzure;
-    }
   }
 
   Future<void> _getUserLocation() async {
     setState(() => _loadingLocation = true);
     try {
-      final position = await _locationService.getCurrentPosition();
-      final userLatLng = LatLng(position.latitude, position.longitude);
-      setState(() {
-        _userLocation = userLatLng;
-        _markers.add(
-          Marker(
-            markerId: const MarkerId('user_location'),
-            position: userLatLng,
-            infoWindow: const InfoWindow(title: 'Lokasi Saya'),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-              BitmapDescriptor.hueRed,
-            ),
-          ),
-        );
-      });
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.deniedForever) return;
+
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      if (mounted) {
+        setState(() {
+          _userLocation = LatLng(position.latitude, position.longitude);
+        });
+      }
     } catch (_) {
-      // Lokasi tidak tersedia, abaikan
+      // Lokasi tidak tersedia
     } finally {
       if (mounted) setState(() => _loadingLocation = false);
     }
   }
 
-  Future<void> _goToMyLocation() async {
-    if (_userLocation == null) {
-      await _getUserLocation();
-    }
+  void _goToMyLocation() {
     if (_userLocation != null) {
-      final controller = await _mapController.future;
-      controller.animateCamera(CameraUpdate.newLatLngZoom(_userLocation!, 14));
+      _mapController.move(_userLocation!, 14);
+    } else {
+      _getUserLocation();
     }
   }
 
-  Future<void> _goToGisting() async {
-    final controller = await _mapController.future;
-    controller.animateCamera(CameraUpdate.newLatLngZoom(_gistingCenter, 13));
+  void _goToGisting() {
+    _mapController.move(_gistingCenter, 13);
   }
 
   @override
@@ -182,10 +158,7 @@ class _MapPageState extends State<MapPage> {
       backgroundColor: _navy,
       body: Column(
         children: [
-          // ── Header ─────────────────────────────────────────
           _buildHeader(),
-
-          // ── Body ───────────────────────────────────────────
           Expanded(
             child: Container(
               decoration: const BoxDecoration(
@@ -198,28 +171,113 @@ class _MapPageState extends State<MapPage> {
                 ),
                 child: Stack(
                   children: [
-                    // ── Google Map ───────────────────────────
-                    GoogleMap(
-                      initialCameraPosition: const CameraPosition(
-                        target: _gistingCenter,
-                        zoom: 13,
+                    // ── OpenStreetMap ────────────────────────
+                    FlutterMap(
+                      mapController: _mapController,
+                      options: MapOptions(
+                        initialCenter: _gistingCenter,
+                        initialZoom: 13,
+                        onTap: (_, _) => setState(() {
+                          _selectedDestName = null;
+                          _selectedDestKategori = null;
+                        }),
                       ),
-                      onMapCreated: (controller) {
-                        _mapController.complete(controller);
-                      },
-                      markers: _markers,
-                      myLocationEnabled: true,
-                      myLocationButtonEnabled: false,
-                      mapToolbarEnabled: false,
-                      zoomControlsEnabled: false,
-                      compassEnabled: true,
-                      onTap: (_) => setState(() => _selectedDestName = null),
+                      children: [
+                        // Tile layer OpenStreetMap
+                        TileLayer(
+                          urlTemplate:
+                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.gistour.app',
+                        ),
+
+                        // Marker destinasi wisata
+                        MarkerLayer(
+                          markers: [
+                            // Marker user location
+                            if (_userLocation != null)
+                              Marker(
+                                point: _userLocation!,
+                                width: 40,
+                                height: 40,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.red.withValues(
+                                          alpha: 0.4,
+                                        ),
+                                        blurRadius: 8,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.person_pin_rounded,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+
+                            // Marker tiap destinasi
+                            ..._destinations.map((dest) {
+                              final color = _markerColor(dest['kategori']);
+                              final isSelected =
+                                  _selectedDestName == dest['name'];
+                              return Marker(
+                                point: LatLng(dest['lat'], dest['lng']),
+                                width: isSelected ? 48 : 40,
+                                height: isSelected ? 48 : 40,
+                                child: GestureDetector(
+                                  onTap: () => setState(() {
+                                    _selectedDestName = dest['name'];
+                                    _selectedDestKategori = dest['kategori'];
+                                  }),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    decoration: BoxDecoration(
+                                      color: color,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? Colors.white
+                                            : Colors.white.withValues(
+                                                alpha: 0.8,
+                                              ),
+                                        width: isSelected ? 3 : 2,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: color.withValues(alpha: 0.5),
+                                          blurRadius: isSelected ? 12 : 6,
+                                          spreadRadius: isSelected ? 2 : 0,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      _markerIcon(dest['kategori']),
+                                      color: Colors.white,
+                                      size: isSelected ? 24 : 18,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      ],
                     ),
 
-                    // ── Legenda warna ────────────────────────
+                    // ── Legenda ──────────────────────────────
                     Positioned(top: 12, left: 12, child: _buildLegend()),
 
-                    // ── FAB lokasi & reset ───────────────────
+                    // ── FAB ──────────────────────────────────
                     Positioned(
                       bottom: 24,
                       right: 16,
@@ -336,26 +394,10 @@ class _MapPageState extends State<MapPage> {
 
   Widget _buildLegend() {
     final items = [
-      {
-        'color': BitmapDescriptor.hueAzure,
-        'label': 'Alam',
-        'paint': const Color(0xFF2196F3),
-      },
-      {
-        'color': BitmapDescriptor.hueOrange,
-        'label': 'Petualangan',
-        'paint': const Color(0xFFFF9800),
-      },
-      {
-        'color': BitmapDescriptor.hueGreen,
-        'label': 'Agrowisata',
-        'paint': const Color(0xFF4CAF50),
-      },
-      {
-        'color': BitmapDescriptor.hueViolet,
-        'label': 'Panorama',
-        'paint': const Color(0xFF9C27B0),
-      },
+      {'label': 'Alam', 'color': const Color(0xFF2196F3)},
+      {'label': 'Petualangan', 'color': const Color(0xFFFF9800)},
+      {'label': 'Agrowisata', 'color': const Color(0xFF4CAF50)},
+      {'label': 'Panorama', 'color': const Color(0xFF9C27B0)},
     ];
 
     return Container(
@@ -381,7 +423,7 @@ class _MapPageState extends State<MapPage> {
                       width: 10,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: item['paint'] as Color,
+                        color: item['color'] as Color,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -403,6 +445,7 @@ class _MapPageState extends State<MapPage> {
   }
 
   Widget _buildSelectedChip() {
+    final color = _markerColor(_selectedDestKategori ?? 'Alam');
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
@@ -418,17 +461,27 @@ class _MapPageState extends State<MapPage> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.place_rounded, color: _blue, size: 18),
+          Icon(Icons.place_rounded, color: color, size: 18),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              _selectedDestName!,
-              style: const TextStyle(
-                color: _navy,
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-              ),
-              overflow: TextOverflow.ellipsis,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _selectedDestName!,
+                  style: const TextStyle(
+                    color: _navy,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  _selectedDestKategori ?? '',
+                  style: TextStyle(color: color, fontSize: 11),
+                ),
+              ],
             ),
           ),
         ],

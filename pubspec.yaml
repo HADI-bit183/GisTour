@@ -26,8 +26,9 @@ dependencies:
   # State Management
   provider: ^6.1.0
 
-  # Maps & Location
-  google_maps_flutter: ^2.5.3
+  # Maps & Location (OpenStreetMap - gratis, tanpa API key)
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
   geolocator: ^10.1.0
 
   # Preferences
