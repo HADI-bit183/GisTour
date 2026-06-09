@@ -9,16 +9,21 @@ class FavoriteProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
-  // Getters
+  final Set<String> _togglingIds = {};
+  String? _loadedUserId;
+
   List<FavoriteModel> get favorites => _favorites;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   int get favoriteCount => _favorites.length;
 
-  // Load user favorites
   Future<void> loadFavorites({required String userId}) async {
-    _setLoading(true);
-    _clearError();
+    // Jika userId sama dan tidak sedang loading, skip
+    if (_loadedUserId == userId && !_isLoading) return;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
 
     try {
       final snapshot = await _firestore
@@ -28,19 +33,18 @@ class FavoriteProvider extends ChangeNotifier {
           .get();
 
       _favorites = snapshot.docs
-          .map((doc) =>
-              FavoriteModel.fromJson(doc.id, doc.data()))
+          .map((doc) => FavoriteModel.fromJson(doc.id, doc.data()))
           .toList();
 
-      _setLoading(false);
+      _loadedUserId = userId;
     } catch (e) {
-      _setError('Gagal memuat favorit: $e');
-      _setLoading(false);
-      rethrow;
+      _errorMessage = 'Gagal memuat favorit: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners(); // satu kali notify di akhir
     }
   }
 
-  // Add to favorites
   Future<void> addFavorite({
     required String userId,
     required String destinationId,
@@ -49,14 +53,32 @@ class FavoriteProvider extends ChangeNotifier {
     double? rating,
     String? kategori,
   }) async {
-    _clearError();
+    _errorMessage = null;
+
+    // Sudah ada di list lokal, tidak perlu tambah lagi
+    if (_favorites.any((f) => f.destinationId == destinationId)) return;
 
     try {
-      // Check if already favorited
-      if (isFavorite(destinationId)) {
-        throw Exception('Sudah ditambahkan ke favorit');
+      // Cek di Firestore kalau-kalau sudah ada tapi belum di list lokal
+      final existing = await _firestore
+          .collection('favorites')
+          .where('userId', isEqualTo: userId)
+          .where('destinationId', isEqualTo: destinationId)
+          .limit(1)
+          .get();
+
+      if (existing.docs.isNotEmpty) {
+        // Sudah ada di Firestore, sync ke list lokal saja
+        final model = FavoriteModel.fromJson(
+          existing.docs.first.id,
+          existing.docs.first.data(),
+        );
+        _favorites.insert(0, model);
+        notifyListeners();
+        return;
       }
 
+      // Belum ada, buat baru
       final docRef = _firestore.collection('favorites').doc();
       final favorite = FavoriteModel(
         id: docRef.id,
@@ -69,42 +91,64 @@ class FavoriteProvider extends ChangeNotifier {
         createdAt: DateTime.now(),
       );
 
-      await docRef.set(favorite.toJson());
+      // Update list lokal DULU agar UI langsung reaktif
       _favorites.insert(0, favorite);
       notifyListeners();
+
+      // Baru simpan ke Firestore
+      await docRef.set(favorite.toJson());
     } catch (e) {
-      _setError('Gagal menambah favorit: $e');
+      // Rollback list lokal jika Firestore gagal
+      _favorites.removeWhere((f) => f.destinationId == destinationId);
+      _errorMessage = 'Gagal menambah favorit: $e';
+      notifyListeners();
       rethrow;
     }
   }
 
-  // Remove from favorites
   Future<void> removeFavorite({required String destinationId}) async {
-    _clearError();
+    _errorMessage = null;
+
+    // Cari di list lokal
+    final index = _favorites.indexWhere(
+      (f) => f.destinationId == destinationId,
+    );
+    FavoriteModel? removed;
+
+    if (index != -1) {
+      removed = _favorites[index];
+      // Hapus dari list lokal DULU agar UI langsung reaktif
+      _favorites.removeAt(index);
+      notifyListeners();
+    }
 
     try {
-      final favorite = _favorites.firstWhere(
-        (fav) => fav.destinationId == destinationId,
-        orElse: () => throw Exception('Favorit tidak ditemukan'),
-      );
-
-      await _firestore
-          .collection('favorites')
-          .doc(favorite.id)
-          .delete();
-
-      _favorites.removeWhere((fav) => fav.destinationId == destinationId);
-      notifyListeners();
+      if (removed != null) {
+        // Hapus dari Firestore pakai doc ID
+        await _firestore.collection('favorites').doc(removed.id).delete();
+      } else {
+        // Fallback: cari di Firestore
+        final snapshot = await _firestore
+            .collection('favorites')
+            .where('destinationId', isEqualTo: destinationId)
+            .limit(1)
+            .get();
+        if (snapshot.docs.isNotEmpty) {
+          await snapshot.docs.first.reference.delete();
+        }
+      }
     } catch (e) {
-      _setError('Gagal menghapus favorit: $e');
+      // Rollback: kembalikan item ke list lokal jika Firestore gagal
+      if (removed != null) {
+        _favorites.insert(index == -1 ? 0 : index, removed);
+        notifyListeners();
+      }
+      _errorMessage = 'Gagal menghapus favorit: $e';
       rethrow;
     }
   }
 
-  // Get favorites
-  Future<List<FavoriteModel>> getFavorites({
-    required String userId,
-  }) async {
+  Future<List<FavoriteModel>> getFavorites({required String userId}) async {
     try {
       final snapshot = await _firestore
           .collection('favorites')
@@ -113,21 +157,18 @@ class FavoriteProvider extends ChangeNotifier {
           .get();
 
       return snapshot.docs
-          .map((doc) =>
-              FavoriteModel.fromJson(doc.id, doc.data()))
+          .map((doc) => FavoriteModel.fromJson(doc.id, doc.data()))
           .toList();
     } catch (e) {
-      _setError('Gagal mendapatkan favorit: $e');
+      _errorMessage = 'Gagal mendapatkan favorit: $e';
       rethrow;
     }
   }
 
-  // Check if destination is favorited
   bool isFavorite(String destinationId) {
     return _favorites.any((fav) => fav.destinationId == destinationId);
   }
 
-  // Toggle favorite
   Future<void> toggleFavorite({
     required String userId,
     required String destinationId,
@@ -136,89 +177,72 @@ class FavoriteProvider extends ChangeNotifier {
     double? rating,
     String? kategori,
   }) async {
-    if (isFavorite(destinationId)) {
-      await removeFavorite(destinationId: destinationId);
-    } else {
-      await addFavorite(
-        userId: userId,
-        destinationId: destinationId,
-        destinationName: destinationName,
-        imageUrl: imageUrl,
-        rating: rating,
-        kategori: kategori,
-      );
+    if (_togglingIds.contains(destinationId)) return;
+
+    _togglingIds.add(destinationId);
+    try {
+      if (isFavorite(destinationId)) {
+        await removeFavorite(destinationId: destinationId);
+      } else {
+        await addFavorite(
+          userId: userId,
+          destinationId: destinationId,
+          destinationName: destinationName,
+          imageUrl: imageUrl,
+          rating: rating,
+          kategori: kategori,
+        );
+      }
+    } finally {
+      _togglingIds.remove(destinationId);
     }
   }
 
-  // Get favorite by destination ID
   FavoriteModel? getFavoriteByDestinationId(String destinationId) {
     try {
-      return _favorites.firstWhere(
-        (fav) => fav.destinationId == destinationId,
-      );
+      return _favorites.firstWhere((fav) => fav.destinationId == destinationId);
     } catch (e) {
       return null;
     }
   }
 
-  // Clear all favorites
   Future<void> clearAllFavorites({required String userId}) async {
-    _clearError();
+    _errorMessage = null;
+
+    final backup = List<FavoriteModel>.from(_favorites);
+    _favorites.clear();
+    notifyListeners();
 
     try {
       final batch = _firestore.batch();
-
-      for (var favorite in _favorites) {
-        batch.delete(_firestore
-            .collection('favorites')
-            .doc(favorite.id));
+      for (var favorite in backup) {
+        batch.delete(_firestore.collection('favorites').doc(favorite.id));
       }
-
       await batch.commit();
-      _favorites.clear();
-      notifyListeners();
     } catch (e) {
-      _setError('Gagal menghapus semua favorit: $e');
+      _favorites.addAll(backup);
+      notifyListeners();
+      _errorMessage = 'Gagal menghapus semua favorit: $e';
       rethrow;
     }
   }
 
-  // Get favorites by category
   List<FavoriteModel> getFavoritesByCategory(String category) {
-    return _favorites
-        .where((fav) => fav.kategori == category)
-        .toList();
+    return _favorites.where((fav) => fav.kategori == category).toList();
   }
 
-  // Get favorites sorted by rating
   List<FavoriteModel> getFavoritesSortedByRating() {
     final sorted = List<FavoriteModel>.from(_favorites);
-    sorted.sort((a, b) => (b.rating ?? 0)
-        .compareTo((a.rating ?? 0)));
+    sorted.sort((a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0));
     return sorted;
   }
 
-  // Search favorites
   List<FavoriteModel> searchFavorites(String query) {
     return _favorites
-        .where((fav) => fav.destinationName
-            .toLowerCase()
-            .contains(query.toLowerCase()))
+        .where(
+          (fav) =>
+              fav.destinationName.toLowerCase().contains(query.toLowerCase()),
+        )
         .toList();
-  }
-
-  // Private helper methods
-  void _setLoading(bool value) {
-    _isLoading = value;
-    notifyListeners();
-  }
-
-  void _setError(String message) {
-    _errorMessage = message;
-    notifyListeners();
-  }
-
-  void _clearError() {
-    _errorMessage = null;
   }
 }

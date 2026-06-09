@@ -83,8 +83,9 @@ class _LoginPageState extends State<LoginPage> {
         raw.contains('invalid-credential')) {
       return 'Email atau password salah.';
     }
-    if (raw.contains('too-many-requests'))
+    if (raw.contains('too-many-requests')) {
       return 'Terlalu banyak percobaan. Coba lagi nanti.';
+    }
     if (raw.contains('network')) return 'Tidak ada koneksi internet.';
     return 'Login gagal. Silakan coba lagi.';
   }

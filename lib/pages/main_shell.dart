@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/favorite_provider.dart';
 import 'event_page.dart';
 import 'favorite_page.dart';
 import 'map_page.dart';
@@ -15,6 +18,7 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
+  String? _lastLoadedUserId;
 
   final List<Widget> _pages = const [
     HomePage(),
@@ -27,6 +31,19 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Listen AuthProvider — begitu userId tersedia, langsung load favorites
+    final auth = context.watch<AuthProvider>();
+    if (auth.userId != null && auth.userId != _lastLoadedUserId) {
+      _lastLoadedUserId = auth.userId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Provider.of<FavoriteProvider>(
+          context,
+          listen: false,
+        ).loadFavorites(userId: auth.userId!);
+      });
+    }
+
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: NavigationBar(

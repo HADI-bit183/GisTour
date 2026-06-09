@@ -1,41 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
 import '../providers/favorite_provider.dart';
-import '../providers/theme_provider.dart';
 import '../models/favorite_model.dart';
 
-class FavoritePage extends StatefulWidget {
+class FavoritePage extends StatelessWidget {
   const FavoritePage({super.key});
 
-  @override
-  State<FavoritePage> createState() => _FavoritePageState();
-}
-
-class _FavoritePageState extends State<FavoritePage> {
-  // ── Warna tema ──────────────────────────────────────────────
   static const _navy = Color(0xFF0B1F3A);
   static const _navyDark = Color(0xFF0D2B55);
   static const _blue = Color(0xFF1565C0);
   static const _bodyBg = Color(0xFFF0F4FC);
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _loadFavorites();
-    });
-  }
-
-  void _loadFavorites() {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (authProvider.userId == null) return;
-    Provider.of<FavoriteProvider>(
-      context,
-      listen: false,
-    ).loadFavorites(userId: authProvider.userId!);
-  }
+  static const Map<String, String> _destinationImages = {
+    'gisting_idaman_hill': 'assets/Gisting_Idaman_Hill.jpg',
+    'bukit_neba': 'assets/Bukit_Neba.jpg',
+    'air_terjun_batu_lapis': 'assets/Air_Terjun_Batu_Lapis.jpg',
+    'air_terjun_keramat_sari': 'assets/Air_Terjun_Keramat_Sari.jpeg',
+    'lentana_garden': 'assets/Lentana_Garden.jpg',
+    'dam_margo_tirto': 'assets/Wisata_DAM_Margo_Tirto.jpeg',
+    'rest_area_park': 'assets/Rest_Area_Park_Gisting.webp',
+    'butterfly_pool': 'assets/butterfly_swimming_pool.jpg',
+    'way_bekhak': 'assets/Way_Bekhak_Bath_Sukaraja.jpg',
+    'gunung_tanggamus': 'assets/Gunung_Tanggamus.jpg',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -43,10 +30,7 @@ class _FavoritePageState extends State<FavoritePage> {
       backgroundColor: _navy,
       body: Column(
         children: [
-          // ── Header ─────────────────────────────────────────
-          _buildHeader(),
-
-          // ── Body ───────────────────────────────────────────
+          _buildHeader(context),
           Expanded(
             child: Container(
               decoration: const BoxDecoration(
@@ -57,26 +41,29 @@ class _FavoritePageState extends State<FavoritePage> {
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(26),
                 ),
-                child: Consumer2<FavoriteProvider, ThemeProvider>(
-                  builder: (context, favoriteProvider, themeProvider, _) {
+                // Consumer langsung listen FavoriteProvider
+                // Otomatis rebuild saat addFavorite/removeFavorite dipanggil
+                child: Consumer<FavoriteProvider>(
+                  builder: (context, favoriteProvider, _) {
                     if (favoriteProvider.isLoading) {
                       return const Center(
                         child: CircularProgressIndicator(color: _blue),
                       );
                     }
-
                     if (favoriteProvider.favorites.isEmpty) {
                       return _buildEmptyState();
                     }
-
                     return ListView.builder(
                       padding: const EdgeInsets.fromLTRB(18, 20, 18, 24),
                       itemCount: favoriteProvider.favorites.length,
                       itemBuilder: (context, index) {
                         final favorite = favoriteProvider.favorites[index];
+                        final imagePath =
+                            _destinationImages[favorite.destinationId];
                         return FavoriteCard(
                           favorite: favorite,
-                          onRemove: () => _removeFavorite(favorite),
+                          imagePath: imagePath,
+                          onRemove: () => _removeFavorite(context, favorite),
                         );
                       },
                     );
@@ -90,8 +77,7 @@ class _FavoritePageState extends State<FavoritePage> {
     );
   }
 
-  // ── HEADER ────────────────────────────────────────────────
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     return Container(
       color: _navyDark,
       padding: EdgeInsets.fromLTRB(
@@ -144,7 +130,6 @@ class _FavoritePageState extends State<FavoritePage> {
     );
   }
 
-  // ── EMPTY STATE ───────────────────────────────────────────
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -182,11 +167,13 @@ class _FavoritePageState extends State<FavoritePage> {
     );
   }
 
-  // ── DIALOG HAPUS (logika tidak berubah) ───────────────────
-  void _removeFavorite(FavoriteModel favorite) {
+  void _removeFavorite(BuildContext context, FavoriteModel favorite) {
+    final favProvider = Provider.of<FavoriteProvider>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'Hapus Favorit',
@@ -202,7 +189,7 @@ class _FavoritePageState extends State<FavoritePage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text(
               'Batal',
               style: TextStyle(color: Color(0xFF99AABB)),
@@ -210,18 +197,25 @@ class _FavoritePageState extends State<FavoritePage> {
           ),
           TextButton(
             onPressed: () {
-              Provider.of<FavoriteProvider>(
-                context,
-                listen: false,
-              ).removeFavorite(destinationId: favorite.destinationId).then((_) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Dihapus dari favorit'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              });
+              Navigator.pop(dialogContext);
+              favProvider
+                  .removeFavorite(destinationId: favorite.destinationId)
+                  .then((_) {
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('Dihapus dari favorit'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  })
+                  .catchError((e) {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text('Gagal menghapus: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  });
             },
             child: const Text(
               'Hapus',
@@ -237,9 +231,10 @@ class _FavoritePageState extends State<FavoritePage> {
   }
 }
 
-// ── FAVORITE CARD ──────────────────────────────────────────────
+// ── FAVORITE CARD ─────────────────────────────────────────────
 class FavoriteCard extends StatelessWidget {
   final FavoriteModel favorite;
+  final String? imagePath;
   final VoidCallback onRemove;
 
   static const _navy = Color(0xFF0B1F3A);
@@ -249,6 +244,7 @@ class FavoriteCard extends StatelessWidget {
   const FavoriteCard({
     super.key,
     required this.favorite,
+    required this.imagePath,
     required this.onRemove,
   });
 
@@ -264,66 +260,38 @@ class FavoriteCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Gambar ────────────────────────────────────────
-          if (favorite.imageUrl != null)
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(14),
-              ),
-              child: Image.network(
-                favorite.imageUrl!,
-                height: 150,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  height: 150,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF0D2B55), Color(0xFF1565C0)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+            child: imagePath != null
+                ? Image.asset(
+                    imagePath!,
+                    height: 150,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  )
+                : Container(
+                    height: 90,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF0D2B55), Color(0xFF1565C0)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                     ),
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(14),
-                    ),
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.image_not_supported_outlined,
-                      color: Colors.white54,
-                      size: 30,
+                    child: const Center(
+                      child: Icon(
+                        Icons.landscape_rounded,
+                        color: Colors.white54,
+                        size: 32,
+                      ),
                     ),
                   ),
-                ),
-              ),
-            )
-          else
-            Container(
-              height: 90,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF0D2B55), Color(0xFF1565C0)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.landscape_rounded,
-                  color: Colors.white54,
-                  size: 32,
-                ),
-              ),
-            ),
-
-          // ── Konten ────────────────────────────────────────
+          ),
           Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Nama + tombol hapus
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -384,8 +352,6 @@ class FavoriteCard extends StatelessWidget {
                     ),
                   ],
                 ),
-
-                // Rating
                 if (favorite.rating != null) ...[
                   const SizedBox(height: 10),
                   Row(
@@ -407,12 +373,9 @@ class FavoriteCard extends StatelessWidget {
                     ],
                   ),
                 ],
-
                 const SizedBox(height: 12),
                 const Divider(height: 1, color: Color(0xFFE8EFF8)),
                 const SizedBox(height: 12),
-
-                // Tombol lihat detail
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -427,9 +390,7 @@ class FavoriteCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 11),
                       textStyle: const TextStyle(fontSize: 12),
                     ),
-                    onPressed: () {
-                      // Navigate to destination detail
-                    },
+                    onPressed: () {},
                   ),
                 ),
               ],

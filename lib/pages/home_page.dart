@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/favorite_provider.dart';
-import '../providers/theme_provider.dart';
 import 'booking_page.dart';
 import 'review_page.dart';
 
@@ -63,6 +62,7 @@ class _HomePageState extends State<HomePage> {
     {
       'id': 'gisting_idaman_hill',
       'icon': Icons.terrain_rounded,
+      'image': 'assets/Gisting_Idaman_Hill.jpg',
       'color': Color(0xFF1565C0),
       'name': 'Gisting Idaman Hill',
       'sub': 'Wisata Perbukitan',
@@ -72,6 +72,7 @@ class _HomePageState extends State<HomePage> {
     {
       'id': 'bukit_neba',
       'icon': Icons.outdoor_grill_rounded,
+      'image': 'assets/Bukit_Neba.jpg',
       'color': Color(0xFF37474F),
       'name': 'Bukit Neba',
       'sub': 'Camping & Panorama',
@@ -81,6 +82,7 @@ class _HomePageState extends State<HomePage> {
     {
       'id': 'air_terjun_batu_lapis',
       'icon': Icons.water_drop_rounded,
+      'image': 'assets/Air_Terjun_Batu_Lapis.jpg',
       'color': Color(0xFF1B5E20),
       'name': 'Air Terjun Batu Lapis',
       'sub': 'Air Terjun Unik',
@@ -90,6 +92,7 @@ class _HomePageState extends State<HomePage> {
     {
       'id': 'lentana_garden',
       'icon': Icons.local_florist_rounded,
+      'image': 'assets/Lentana_Garden.jpg',
       'color': Color(0xFF7B1FA2),
       'name': 'Lentana Garden',
       'sub': 'Taman Keluarga',
@@ -99,6 +102,7 @@ class _HomePageState extends State<HomePage> {
     {
       'id': 'dam_margo_tirto',
       'icon': Icons.waves_rounded,
+      'image': 'assets/Wisata_DAM_Margo_Tirto.jpeg',
       'color': Color(0xFF0288D1),
       'name': 'DAM Margo Tirto',
       'sub': 'Wisata Air',
@@ -118,6 +122,7 @@ class _HomePageState extends State<HomePage> {
       'price': 10000.0,
       'rating': 4.8,
       'icon': Icons.terrain_rounded,
+      'image': 'assets/Gisting_Idaman_Hill.jpg',
       'iconColor': Color(0xFF1565C0),
       'bgColor': Color(0xFFE3F2FD),
     },
@@ -130,6 +135,7 @@ class _HomePageState extends State<HomePage> {
       'price': 15000.0,
       'rating': 4.7,
       'icon': Icons.outdoor_grill_rounded,
+      'image': 'assets/Bukit_Neba.jpg',
       'iconColor': Color(0xFF455A64),
       'bgColor': Color(0xFFECEFF1),
     },
@@ -142,6 +148,7 @@ class _HomePageState extends State<HomePage> {
       'price': 0.0,
       'rating': 4.4,
       'icon': Icons.forest_rounded,
+      'image': 'assets/Rest_Area_Park_Gisting.webp',
       'iconColor': Color(0xFF2E7D32),
       'bgColor': Color(0xFFE8F5E9),
     },
@@ -154,6 +161,7 @@ class _HomePageState extends State<HomePage> {
       'price': 20000.0,
       'rating': 4.6,
       'icon': Icons.local_florist_rounded,
+      'image': 'assets/Lentana_Garden.jpg',
       'iconColor': Color(0xFF6A1B9A),
       'bgColor': Color(0xFFEDE7F6),
     },
@@ -166,6 +174,7 @@ class _HomePageState extends State<HomePage> {
       'price': 10000.0,
       'rating': 4.5,
       'icon': Icons.waves_rounded,
+      'image': 'assets/Wisata_DAM_Margo_Tirto.jpeg',
       'iconColor': Color(0xFF00695C),
       'bgColor': Color(0xFFE0F7FA),
     },
@@ -178,6 +187,7 @@ class _HomePageState extends State<HomePage> {
       'price': 15000.0,
       'rating': 4.5,
       'icon': Icons.pool_rounded,
+      'image': 'assets/butterfly_swimming_pool.jpg',
       'iconColor': Color(0xFF00695C),
       'bgColor': Color(0xFFE0F7FA),
     },
@@ -190,6 +200,7 @@ class _HomePageState extends State<HomePage> {
       'price': 5000.0,
       'rating': 4.6,
       'icon': Icons.water_drop_rounded,
+      'image': 'assets/Way_Bekhak_Bath_Sukaraja.jpg',
       'iconColor': Color(0xFF1B5E20),
       'bgColor': Color(0xFFE8F5E9),
     },
@@ -202,6 +213,7 @@ class _HomePageState extends State<HomePage> {
       'price': 10000.0,
       'rating': 4.7,
       'icon': Icons.waterfall_chart_rounded,
+      'image': 'assets/Air_Terjun_Batu_Lapis.jpg',
       'iconColor': Color(0xFF1565C0),
       'bgColor': Color(0xFFE3F2FD),
     },
@@ -214,6 +226,7 @@ class _HomePageState extends State<HomePage> {
       'price': 5000.0,
       'rating': 4.5,
       'icon': Icons.waterfall_chart_rounded,
+      'image': 'assets/Air_Terjun_Keramat_Sari.jpeg',
       'iconColor': Color(0xFF1565C0),
       'bgColor': Color(0xFFE3F2FD),
     },
@@ -226,6 +239,7 @@ class _HomePageState extends State<HomePage> {
       'price': 25000.0,
       'rating': 4.9,
       'icon': Icons.terrain_rounded,
+      'image': 'assets/Gunung_Tanggamus.jpg',
       'iconColor': Color(0xFF455A64),
       'bgColor': Color(0xFFECEFF1),
     },
@@ -252,7 +266,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // ── initState: load favorites saat halaman pertama dibuka ─────
+  // ── initState ─────────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
@@ -665,13 +679,18 @@ class _HomePageState extends State<HomePage> {
                   clipBehavior: Clip.antiAlias,
                   child: Stack(
                     children: [
-                      // Background icon
-                      Center(
-                        child: Icon(
-                          card['icon'] as IconData,
-                          color: Colors.white.withValues(alpha: 0.75),
-                          size: 44,
-                        ),
+                      // Background image
+                      Positioned.fill(
+                        child: card['image'] != null
+                            ? Image.asset(
+                                card['image'] as String,
+                                fit: BoxFit.cover,
+                              )
+                            : Icon(
+                                card['icon'] as IconData,
+                                color: Colors.white.withValues(alpha: 0.75),
+                                size: 44,
+                              ),
                       ),
                       // Gradient overlay
                       Positioned(
@@ -833,7 +852,7 @@ class _HomePageState extends State<HomePage> {
             ),
             child: Row(
               children: [
-                // Icon box
+                // Icon/Image box
                 Container(
                   width: 46,
                   height: 46,
@@ -841,11 +860,14 @@ class _HomePageState extends State<HomePage> {
                     color: dest['bgColor'] as Color,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    dest['icon'] as IconData,
-                    color: dest['iconColor'] as Color,
-                    size: 22,
-                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: dest['image'] != null
+                      ? Image.asset(dest['image'] as String, fit: BoxFit.cover)
+                      : Icon(
+                          dest['icon'] as IconData,
+                          color: dest['iconColor'] as Color,
+                          size: 22,
+                        ),
                 ),
                 const SizedBox(width: 11),
                 // Info
@@ -989,11 +1011,17 @@ class _HomePageState extends State<HomePage> {
                             const Color(0xFFE3F2FD),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(
-                        dest['icon'] as IconData,
-                        color: (dest['iconColor'] as Color?) ?? _blue,
-                        size: 26,
-                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: dest['image'] != null
+                          ? Image.asset(
+                              dest['image'] as String,
+                              fit: BoxFit.cover,
+                            )
+                          : Icon(
+                              dest['icon'] as IconData,
+                              color: (dest['iconColor'] as Color?) ?? _blue,
+                              size: 26,
+                            ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
