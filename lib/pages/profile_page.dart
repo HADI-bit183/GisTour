@@ -263,14 +263,14 @@ class ProfilePage extends StatelessWidget {
               icon: Icons.info_rounded,
               title: 'Tentang Aplikasi',
               subtitle: 'Versi 1.0.0',
-              onTap: () {},
+              onTap: () => _showAboutDialog(context),
             ),
             _divider(),
             _buildTile(
               icon: Icons.help_rounded,
               title: 'Bantuan',
               subtitle: 'FAQ dan dukungan pelanggan',
-              onTap: () {},
+              onTap: () => _showHelpDialog(context),
             ),
             _divider(),
             _buildTile(
@@ -629,6 +629,210 @@ class ProfilePage extends StatelessWidget {
               }
             },
             child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── ABOUT DIALOG ──────────────────────────────────────────
+  void _showAboutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE3F2FD),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(Icons.explore_rounded, size: 38, color: _blue),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Wisata App',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                color: _navy,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Versi 1.0.0',
+              style: TextStyle(fontSize: 12, color: Color(0xFF99AABB)),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Aplikasi panduan wisata lokal untuk membantu kamu menjelajahi destinasi terbaik di sekitarmu.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF4A6080),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Divider(color: Color(0xFFE8EFF8)),
+            const SizedBox(height: 4),
+            const Text(
+              '© 2025 Wisata App. All rights reserved.',
+              style: TextStyle(fontSize: 11, color: Color(0xFF99AABB)),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _navyDark,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(9),
+                ),
+              ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Tutup'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── HELP DIALOG ───────────────────────────────────────────
+  void _showHelpDialog(BuildContext context) {
+    const faqs = [
+      (
+        q: 'Bagaimana cara mencari tempat wisata?',
+        a: 'Gunakan fitur pencarian di halaman utama, lalu ketik nama atau kategori wisata yang diinginkan.',
+      ),
+      (
+        q: 'Apakah aplikasi bisa digunakan offline?',
+        a: 'Sebagian konten membutuhkan koneksi internet. Pastikan perangkat terhubung untuk pengalaman terbaik.',
+      ),
+      (
+        q: 'Bagaimana cara melaporkan informasi yang salah?',
+        a: 'Kamu dapat menghubungi kami melalui email support di bawah ini.',
+      ),
+      (
+        q: 'Apakah data pribadi saya aman?',
+        a: 'Ya, kami menjaga privasi pengguna sesuai kebijakan privasi yang berlaku.',
+      ),
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.help_rounded, color: _blue, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Bantuan & FAQ',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: _navy,
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ...faqs.map(
+                  (faq) => Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Q  ',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: _blue,
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                faq.q,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: _navy,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 16),
+                          child: Text(
+                            faq.a,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF4A6080),
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Divider(color: Color(0xFFE8EFF8)),
+                const SizedBox(height: 8),
+                const Text(
+                  'Butuh bantuan lebih lanjut?',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: _navy,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '📧  support@wisataapp.id',
+                  style: TextStyle(fontSize: 12, color: _blue),
+                ),
+                const SizedBox(height: 4),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _navyDark,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(9),
+                ),
+              ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Mengerti'),
+            ),
           ),
         ],
       ),

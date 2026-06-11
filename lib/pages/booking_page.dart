@@ -6,7 +6,6 @@ import '../providers/auth_provider.dart';
 import '../providers/booking_provider.dart';
 import '../services/payment_service.dart';
 
-// Warna tema konsisten dengan HomePage & main.dart
 const _navy = Color(0xFF0B1F3A);
 const _navyDark = Color(0xFF0D2B55);
 const _blue = Color(0xFF1565C0);
@@ -32,14 +31,18 @@ class _BookingPageState extends State<BookingPage> {
   late DateTime _selectedDate;
   int _quantity = 1;
   PaymentMethod _selectedPaymentMethod = PaymentMethod.qris;
-  bool _isProcessing = false;
+
+  // ── FIX: pakai dua flag terpisah ─────────────────────────────
+  bool _isCreatingBooking = false; // fase 1: simpan booking
+  bool _isProcessingPayment = false; // fase 2: proses pembayaran
+  bool get _isProcessing => _isCreatingBooking || _isProcessingPayment;
+
   late DateFormat _dateFormat;
 
   @override
   void initState() {
     super.initState();
     _selectedDate = DateTime.now().add(const Duration(days: 1));
-    // FIX: inisialisasi locale sebelum pakai DateFormat id_ID
     initializeDateFormatting('id_ID').then((_) {
       if (mounted) setState(() {});
     });
@@ -83,27 +86,78 @@ class _BookingPageState extends State<BookingPage> {
             color: Colors.white,
             size: 18,
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: _isProcessing ? null : () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildDestinationInfo(),
-            const SizedBox(height: 14),
-            _buildDateSelection(),
-            const SizedBox(height: 14),
-            _buildQuantitySelection(),
-            const SizedBox(height: 14),
-            _buildPriceBreakdown(),
-            const SizedBox(height: 14),
-            _buildPaymentMethodSelection(),
-            const SizedBox(height: 24),
-            _buildBookingButton(),
-          ],
-        ),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDestinationInfo(),
+                const SizedBox(height: 14),
+                _buildDateSelection(),
+                const SizedBox(height: 14),
+                _buildQuantitySelection(),
+                const SizedBox(height: 14),
+                _buildPriceBreakdown(),
+                const SizedBox(height: 14),
+                _buildPaymentMethodSelection(),
+              ],
+            ),
+          ),
+
+          // ── Tombol Bayar di bawah (fixed) ──────────────────────
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              color: _bodyBg,
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
+              child: _buildBookingButton(),
+            ),
+          ),
+
+          // ── FIX: Loading overlay ─────────────────────────────
+          if (_isProcessing)
+            Container(
+              color: Colors.black.withValues(alpha: 0.35),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 28,
+                    vertical: 24,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(_navyDark),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _isCreatingBooking
+                            ? 'Membuat pesanan...'
+                            : 'Memproses pembayaran...',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: _navy,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -170,25 +224,29 @@ class _BookingPageState extends State<BookingPage> {
         _sectionLabel('Tanggal Kunjung'),
         const SizedBox(height: 8),
         GestureDetector(
-          onTap: () async {
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: _selectedDate,
-              firstDate: DateTime.now(),
-              lastDate: DateTime.now().add(const Duration(days: 365)),
-              builder: (context, child) => Theme(
-                data: Theme.of(context).copyWith(
-                  colorScheme: const ColorScheme.light(
-                    primary: _navyDark,
-                    onPrimary: Colors.white,
-                    surface: Colors.white,
-                  ),
-                ),
-                child: child!,
-              ),
-            );
-            if (picked != null) setState(() => _selectedDate = picked);
-          },
+          onTap: _isProcessing
+              ? null
+              : () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedDate,
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                    builder: (context, child) => Theme(
+                      data: Theme.of(context).copyWith(
+                        colorScheme: const ColorScheme.light(
+                          primary: _navyDark,
+                          onPrimary: Colors.white,
+                          surface: Colors.white,
+                        ),
+                      ),
+                      child: child!,
+                    ),
+                  );
+                  if (picked != null) {
+                    setState(() => _selectedDate = picked);
+                  }
+                },
           child: _card(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -235,7 +293,9 @@ class _BookingPageState extends State<BookingPage> {
             children: [
               _qtyButton(
                 icon: Icons.remove_rounded,
-                onTap: _quantity > 1 ? () => setState(() => _quantity--) : null,
+                onTap: (!_isProcessing && _quantity > 1)
+                    ? () => setState(() => _quantity--)
+                    : null,
               ),
               Expanded(
                 child: Column(
@@ -258,7 +318,7 @@ class _BookingPageState extends State<BookingPage> {
               ),
               _qtyButton(
                 icon: Icons.add_rounded,
-                onTap: _quantity < 10
+                onTap: (!_isProcessing && _quantity < 10)
                     ? () => setState(() => _quantity++)
                     : null,
               ),
@@ -371,9 +431,11 @@ class _BookingPageState extends State<BookingPage> {
               final selected =
                   _selectedPaymentMethod == PaymentMethod.values[i];
               return GestureDetector(
-                onTap: () => setState(
-                  () => _selectedPaymentMethod = PaymentMethod.values[i],
-                ),
+                onTap: _isProcessing
+                    ? null
+                    : () => setState(
+                        () => _selectedPaymentMethod = PaymentMethod.values[i],
+                      ),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -469,29 +531,17 @@ class _BookingPageState extends State<BookingPage> {
           ),
           elevation: 0,
         ),
-        child: _isProcessing
-            ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.confirmation_number_outlined, size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Bayar ${_formatPrice(_totalPrice)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.confirmation_number_outlined, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              'Bayar ${_formatPrice(_totalPrice)}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -528,8 +578,8 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 
-  // ── Handle Booking ────────────────────────────────────────────
-  void _handleBooking() async {
+  // ── FIX: Handle Booking dengan finally + timeout ──────────────
+  Future<void> _handleBooking() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final bookingProvider = Provider.of<BookingProvider>(
       context,
@@ -537,53 +587,189 @@ class _BookingPageState extends State<BookingPage> {
     );
 
     if (authProvider.userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Silakan login terlebih dahulu'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showSnackBar('Silakan login terlebih dahulu', isError: true);
       return;
     }
 
-    setState(() => _isProcessing = true);
+    // ── FASE 1: Buat booking ──────────────────────────────────
+    setState(() => _isCreatingBooking = true);
+
+    late String bookingId;
 
     try {
-      final booking = await bookingProvider.createBooking(
-        userId: authProvider.userId!,
-        destinationId: widget.destinationId,
-        destinationName: widget.destinationName,
-        visitDate: _selectedDate,
-        quantity: _quantity,
-        pricePerTicket: widget.ticketPrice,
-      );
+      final booking = await bookingProvider
+          .createBooking(
+            userId: authProvider.userId!,
+            destinationId: widget.destinationId,
+            destinationName: widget.destinationName,
+            visitDate: _selectedDate,
+            quantity: _quantity,
+            pricePerTicket: widget.ticketPrice,
+          )
+          // FIX: timeout 15 detik agar tidak muter selamanya
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () => throw Exception('Koneksi timeout. Coba lagi.'),
+          );
 
-      await bookingProvider.processBookingPayment(
-        bookingId: booking.bookingId,
-        method: _selectedPaymentMethod,
-      );
+      bookingId = booking.bookingId;
+    } catch (e) {
+      // FIX: selalu reset loading di finally lewat flag
+      if (mounted) setState(() => _isCreatingBooking = false);
+      _showSnackBar(_cleanError(e), isError: true);
+      return; // keluar, tidak lanjut ke payment
+    }
 
-      setState(() => _isProcessing = false);
+    // FASE 1 selesai
+    if (mounted) {
+      setState(() {
+        _isCreatingBooking = false;
+        _isProcessingPayment = true; // masuk fase 2
+      });
+    }
 
+    // ── FASE 2: Proses pembayaran ─────────────────────────────
+    try {
+      await bookingProvider
+          .processBookingPayment(
+            bookingId: bookingId,
+            method: _selectedPaymentMethod,
+          )
+          .timeout(
+            const Duration(seconds: 20),
+            onTimeout: () => throw Exception(
+              'Proses pembayaran timeout. Cek riwayat pesanan.',
+            ),
+          );
+
+      // Sukses
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tiket berhasil dipesan! 🎉'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
+        setState(() => _isProcessingPayment = false);
+        _showSuccessDialog();
       }
     } catch (e) {
-      setState(() => _isProcessing = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal membuat booking: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        setState(() => _isProcessingPayment = false);
+        _showSnackBar(_cleanError(e), isError: true);
       }
     }
+    // FIX: tidak perlu finally karena setiap branch sudah reset flag
+  }
+
+  // ── Success Dialog ────────────────────────────────────────────
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.green,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Pembayaran Berhasil!',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: _navy,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Tiket ${widget.destinationName} berhasil dipesan untuk ${_formatDate(_selectedDate)}.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF99AABB)),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                _formatPrice(_totalPrice),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: _blue,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$_quantity tiket · ${_paymentMethodLabel()}',
+                style: const TextStyle(fontSize: 12, color: Color(0xFF99AABB)),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // tutup dialog
+                    Navigator.pop(context); // kembali ke home
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _navyDark,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                  ),
+                  child: const Text(
+                    'Selesai',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────
+  String _paymentMethodLabel() {
+    switch (_selectedPaymentMethod) {
+      case PaymentMethod.qris:
+        return 'QRIS';
+      case PaymentMethod.eWallet:
+        return 'E-Wallet';
+      case PaymentMethod.bankTransfer:
+        return 'Transfer Bank';
+    }
+  }
+
+  /// Bersihkan pesan error dari prefix Exception/flutter
+  String _cleanError(Object e) {
+    final msg = e.toString();
+    if (msg.startsWith('Exception: ')) {
+      return msg.replaceFirst('Exception: ', '');
+    }
+    return msg;
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 }

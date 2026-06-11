@@ -23,6 +23,12 @@ class _HomePageState extends State<HomePage> {
   int _activeKat = 0;
   int _activeTab = 0;
 
+  // ── Search State ─────────────────────────────────────────────
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  bool _isSearching = false;
+  final FocusNode _searchFocusNode = FocusNode();
+
   // ── Data Kategori ────────────────────────────────────────────
   static const List<Map<String, dynamic>> _categories = [
     {'icon': Icons.apps_rounded, 'label': 'Semua', 'color': Color(0xFF4CAF50)},
@@ -266,10 +272,27 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // ── Search Filter ─────────────────────────────────────────────
+  List<Map<String, dynamic>> get _filteredDestinations {
+    if (_searchQuery.isEmpty) return _destinations;
+    final q = _searchQuery.toLowerCase();
+    return _destinations.where((d) {
+      return (d['name'] as String).toLowerCase().contains(q) ||
+          (d['desc'] as String).toLowerCase().contains(q) ||
+          (d['category'] as String).toLowerCase().contains(q);
+    }).toList();
+  }
+
   // ── initState ─────────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text;
+        _isSearching = _searchController.text.isNotEmpty;
+      });
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -280,6 +303,13 @@ class _HomePageState extends State<HomePage> {
         ).loadFavorites(userId: authProvider.userId!);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
   }
 
   // ── Toggle favorite dengan FavoriteProvider ───────────────────
@@ -339,52 +369,58 @@ class _HomePageState extends State<HomePage> {
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(26),
                 ),
-                child: SingleChildScrollView(
-                  physics: const ClampingScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(18, 20, 18, 0),
+                child: _isSearching
+                    ? _buildSearchResults(auth.isLoggedIn)
+                    : SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildSectionHeader('Kategori', 'Jelajahi'),
-                            const SizedBox(height: 13),
-                            _buildCategories(),
-                            const SizedBox(height: 22),
-                            _buildSectionHeader(
-                              'Destinasi Populer',
-                              'Lihat semua',
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(18, 20, 18, 0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildSectionHeader('Kategori', 'Jelajahi'),
+                                  const SizedBox(height: 13),
+                                  _buildCategories(),
+                                  const SizedBox(height: 22),
+                                  _buildSectionHeader(
+                                    'Destinasi Populer',
+                                    'Lihat semua',
+                                  ),
+                                  const SizedBox(height: 10),
+                                  _buildTabs(),
+                                  const SizedBox(height: 12),
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: 10),
-                            _buildTabs(),
-                            const SizedBox(height: 12),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 18),
+                              child: _buildPopularCards(auth.isLoggedIn),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                18,
+                                22,
+                                18,
+                                24,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildSectionHeader(
+                                    'Semua Destinasi',
+                                    'Lihat semua',
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _buildDestinationList(auth.isLoggedIn),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      // popular cards full width
-                      Padding(
-                        padding: const EdgeInsets.only(left: 18),
-                        child: _buildPopularCards(auth.isLoggedIn),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(18, 22, 18, 24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildSectionHeader(
-                              'Semua Destinasi',
-                              'Lihat semua',
-                            ),
-                            const SizedBox(height: 12),
-                            _buildDestinationList(auth.isLoggedIn),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
             ),
           ),
@@ -454,13 +490,18 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
           const SizedBox(height: 18),
+          // ── Search Bar AKTIF ──────────────────────────────────
           Container(
             height: 44,
             padding: const EdgeInsets.symmetric(horizontal: 14),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.11),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+              border: Border.all(
+                color: _searchFocusNode.hasFocus
+                    ? Colors.white.withValues(alpha: 0.40)
+                    : Colors.white.withValues(alpha: 0.14),
+              ),
             ),
             child: Row(
               children: [
@@ -470,33 +511,303 @@ class _HomePageState extends State<HomePage> {
                   size: 17,
                 ),
                 const SizedBox(width: 9),
-                const Expanded(
-                  child: Text(
-                    'Cari destinasi wisata...',
-                    style: TextStyle(color: Color(0x8CFFFFFF), fontSize: 13),
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    cursorColor: Colors.white,
+                    decoration: const InputDecoration(
+                      hintText: 'Cari destinasi wisata...',
+                      hintStyle: TextStyle(
+                        color: Color(0x8CFFFFFF),
+                        fontSize: 13,
+                      ),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: (value) {
+                      // optional: handle enter key
+                    },
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.13),
-                    borderRadius: BorderRadius.circular(9),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.18),
+                // Tombol clear (X) atau filter
+                GestureDetector(
+                  onTap: () {
+                    if (_searchController.text.isNotEmpty) {
+                      _searchController.clear();
+                      _searchFocusNode.unfocus();
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 5,
                     ),
-                  ),
-                  child: const Icon(
-                    Icons.tune_rounded,
-                    color: Colors.white,
-                    size: 13,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.13),
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.18),
+                      ),
+                    ),
+                    child: Icon(
+                      _isSearching ? Icons.close_rounded : Icons.tune_rounded,
+                      color: Colors.white,
+                      size: 13,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // ── SEARCH RESULTS ────────────────────────────────────────────
+  Widget _buildSearchResults(bool isLoggedIn) {
+    final results = _filteredDestinations;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.search_rounded,
+                size: 16,
+                color: Color(0xFF99AABB),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                results.isEmpty
+                    ? 'Tidak ada hasil untuk "$_searchQuery"'
+                    : '${results.length} hasil untuk "$_searchQuery"',
+                style: const TextStyle(fontSize: 13, color: Color(0xFF99AABB)),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: results.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.search_off_rounded,
+                        size: 56,
+                        color: Colors.grey[300],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Destinasi tidak ditemukan',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[400],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Coba kata kunci lain',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
+                  itemCount: results.length,
+                  itemBuilder: (_, index) {
+                    final dest = results[index];
+                    final badge = _badgeColors(dest['catStyle'] as String);
+                    final price = dest['price'] as double;
+                    return GestureDetector(
+                      onTap: () {
+                        _searchFocusNode.unfocus();
+                        _showDetail(context, dest, isLoggedIn);
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 9),
+                        padding: const EdgeInsets.all(11),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE8EFF8)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 46,
+                              height: 46,
+                              decoration: BoxDecoration(
+                                color: dest['bgColor'] as Color,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: dest['image'] != null
+                                  ? Image.asset(
+                                      dest['image'] as String,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Icon(
+                                      dest['icon'] as IconData,
+                                      color: dest['iconColor'] as Color,
+                                      size: 22,
+                                    ),
+                            ),
+                            const SizedBox(width: 11),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildHighlightedText(
+                                    dest['name'] as String,
+                                    _searchQuery,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    dest['desc'] as String,
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Color(0xFF99AABB),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 7,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: badge['bg'],
+                                          borderRadius: BorderRadius.circular(
+                                            7,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          dest['category'] as String,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w500,
+                                            color: badge['fg'],
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      const Icon(
+                                        Icons.star_rounded,
+                                        color: Color(0xFFFFC107),
+                                        size: 12,
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        '${dest['rating']}',
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          color: Color(0xFFFFC107),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  _formatPrice(price),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: _blue,
+                                  ),
+                                ),
+                                if (price > 0)
+                                  const Text(
+                                    '/orang',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Color(0xFFAABBC8),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  // ── Highlight teks sesuai query ───────────────────────────────
+  Widget _buildHighlightedText(String text, String query) {
+    if (query.isEmpty) {
+      return Text(
+        text,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: _navy,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+
+    final lowerText = text.toLowerCase();
+    final lowerQuery = query.toLowerCase();
+    final index = lowerText.indexOf(lowerQuery);
+
+    if (index == -1) {
+      return Text(
+        text,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: _navy,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+
+    return RichText(
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: _navy,
+        ),
+        children: [
+          TextSpan(text: text.substring(0, index)),
+          TextSpan(
+            text: text.substring(index, index + query.length),
+            style: const TextStyle(
+              color: _blue,
+              backgroundColor: Color(0xFFDCEEFF),
+            ),
+          ),
+          TextSpan(text: text.substring(index + query.length)),
         ],
       ),
     );
@@ -535,7 +846,7 @@ class _HomePageState extends State<HomePage> {
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemCount: _categories.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
         itemBuilder: (_, i) {
           final kat = _categories[i];
           final color = kat['color'] as Color;
@@ -654,8 +965,7 @@ class _HomePageState extends State<HomePage> {
         ),
         padding: const EdgeInsets.only(right: 18),
         itemCount: sorted.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
-        // ── Gunakan Consumer agar icon ❤️ update otomatis ────────
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (_, i) {
           final card = sorted[i];
           return Consumer<FavoriteProvider>(
@@ -679,7 +989,6 @@ class _HomePageState extends State<HomePage> {
                   clipBehavior: Clip.antiAlias,
                   child: Stack(
                     children: [
-                      // Background image
                       Positioned.fill(
                         child: card['image'] != null
                             ? Image.asset(
@@ -692,7 +1001,6 @@ class _HomePageState extends State<HomePage> {
                                 size: 44,
                               ),
                       ),
-                      // Gradient overlay
                       Positioned(
                         bottom: 0,
                         left: 0,
@@ -732,7 +1040,6 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                       ),
-                      // Rating badge
                       Positioned(
                         top: 8,
                         left: 8,
@@ -766,7 +1073,6 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                       ),
-                      // ── Fav button → tersambung ke FavoriteProvider ──
                       Positioned(
                         top: 8,
                         right: 8,
@@ -852,7 +1158,6 @@ class _HomePageState extends State<HomePage> {
             ),
             child: Row(
               children: [
-                // Icon/Image box
                 Container(
                   width: 46,
                   height: 46,
@@ -870,7 +1175,6 @@ class _HomePageState extends State<HomePage> {
                         ),
                 ),
                 const SizedBox(width: 11),
-                // Info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -936,7 +1240,6 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
-                // Price
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -1034,7 +1337,6 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                     ),
-                    // ── Tombol Favorit ──────────────────────────
                     GestureDetector(
                       onTap: () => _toggleFavorite(dest),
                       child: AnimatedContainer(
